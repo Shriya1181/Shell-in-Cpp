@@ -24,7 +24,7 @@ int main() {
       if (builtins.count(command.substr(5))) {
         std::cout << command.substr(5) << " is a shell builtin" <<std::endl;
       } else {
-        std::cerr << command << ": command not found" << std::endl;
+        std::cerr << command.substr(5) << ": not found" << std::endl;
       }
     } else {
     std::cerr << command << ": command not found" << std::endl; 
