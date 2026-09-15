@@ -69,7 +69,7 @@ int main() {
   // Flush after every std::cout / std:cerr (Turn of buffering)
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
-  std::set<std::string> builtins = {"echo", "type", "exit"};
+  std::set<std::string> builtins = {"echo", "type", "exit", "pwd"};
   //getenv returns a pointer to the value in the environment, or NULL if there is no match. 
   //For PATH this returns a pointer to the value of the PATH environment variable, a list of directories separated by PATH_LIST_SEPARATOR. 
   char* path_env = std::getenv("PATH");
