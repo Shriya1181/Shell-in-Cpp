@@ -1,10 +1,12 @@
 #include <iostream>
 #include <string>
+#include <set>
 
 int main() {
   // Flush after every std::cout / std:cerr
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
+  std::set<std::string> builtins = {"echo", "type", "exit"};
   while(true) {
     std::string command;
     // TODO: Uncomment the code below to pass the first stage
@@ -18,8 +20,14 @@ int main() {
     //substr returns a substring of the string starting from the index specified and of length specified
     } else if(command.substr(0, 5) == "echo ") {
       std::cout << command.substr(5) << std::endl;
+    } else if(command.substr(0, 5) == "type ") {
+      if (builtins.count(command.substr(5))) {
+        std::cout << command.substr(5) << " is a shell builtin" <<std::endl;
+      } else {
+        std::cerr << command << ": command not found" << std::endl;
+      }
     } else {
-    std:: cerr << command << ": command not found" << std::endl; 
+    std::cerr << command << ": command not found" << std::endl; 
     }
   }
 
