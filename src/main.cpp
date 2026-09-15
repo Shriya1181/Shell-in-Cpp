@@ -14,7 +14,7 @@ int main() {
     std::getline(std::cin, command);
     if(command == "exit") {
       //break exits the while loop and terminates the program
-      return 0;
+      break;
     }
     std:: cerr << command << ": command not found" << std::endl; 
   }
