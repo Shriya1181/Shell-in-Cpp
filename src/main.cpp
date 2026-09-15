@@ -43,6 +43,28 @@ std::pair<bool, fs::path> is_in_dir(const std::vector<std::string>& path_dirs, c
     return std::make_pair(false, fs::path());
 }
 
+void execute(const std::vector<std::string>& args, const std::pair<bool, fs::path>& result) {
+    std::vector<char*> c_args;
+    for (const auto& arg : args) {
+    //cast to char* as execv expects an array of char* (C-style strings) and not std::string
+      c_args.push_back(const_cast<char*>(arg.c_str()));
+    }
+    c_args.push_back(nullptr); // Must end with null pointer to show no more arguments
+    //create a new proccess to run the command. Fork() creates a copy of the current process with a new pid.
+    pid_t pid = fork();
+    //child process given a pid of 0(not true pid), parent process given a pid greater than 0, and if fork fails it returns -1
+    //0 lets the child process know it is a child process and should run the command, while the parent process waits for the child to finish execution before continuing.
+    if (pid == 0) {
+      // Child process runs the binary file. execv takes the path to the binary and an array of arguments (including the command itself as the first argument).
+      execv(result.second.c_str(), c_args.data());
+      exit(1); // Exit if execv fails
+    } else if (pid > 0) {
+      // Parent process waits for child to finish execution
+      int status;
+      waitpid(pid, &status, 0);
+    }
+}
+
 int main() {
   // Flush after every std::cout / std:cerr (Turn of buffering)
   std::cout << std::unitbuf;
@@ -99,25 +121,7 @@ int main() {
     } else {
       auto result = is_in_dir(path_dirs, command);
       if (result.first) {
-        std::vector<char*> c_args;
-        for (const auto& arg : args) {
-          //cast to char* as execv expects an array of char* (C-style strings) and not std::string
-          c_args.push_back(const_cast<char*>(arg.c_str()));
-        }
-        c_args.push_back(nullptr); // Must end with null pointer to show no more arguments
-        //create a new proccess to run the command. Fork() creates a copy of the current process with a new pid.
-        pid_t pid = fork();
-        //child process given a pid of 0(not true pid), parent process given a pid greater than 0, and if fork fails it returns -1
-        //0 lets the child process know it is a child process and should run the command, while the parent process waits for the child to finish execution before continuing.
-        if (pid == 0) {
-            // Child process runs the binary file. execv takes the path to the binary and an array of arguments (including the command itself as the first argument).
-            execv(result.second.c_str(), c_args.data());
-            exit(1); // Exit if execv fails
-        } else if (pid > 0) {
-            // Parent process waits for child to finish execution
-            int status;
-            waitpid(pid, &status, 0);
-        }
+        execute(args, result);
       } else {
         std::cout << command << ": command not found" << std::endl;
       }
