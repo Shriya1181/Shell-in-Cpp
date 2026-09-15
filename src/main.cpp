@@ -51,7 +51,7 @@ int main() {
         bool found = false;
         for (const std::string& dir : path_dirs) {
           fs::path full_path = fs::path(dir) / cmd;
-          if (fs::exists(full_path) && fs::is_regular_file(full_path)) {
+          if (fs::exists(full_path) && fs::is_regular_file(full_path) && (fs::status(full_path).permissions() & fs::perms::owner_exec) != fs::perms::none) {
             std::cout << cmd << " is " << full_path.string() << std::endl;
             found = true;
             break; // Stop searching once we find the first match
