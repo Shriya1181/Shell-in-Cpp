@@ -100,7 +100,7 @@ int main() {
       //break exits the while loop and terminates the program or can use return 0
       break;
     //substr returns a substring of the string starting from the index specified and of length specified
-    } else if(command == "echo" && args.size() > 1) {
+    } else if(command == "echo") {
       for (size_t i = 1; i < args.size(); ++i) {
         //ternary operator checks if the current argument is the last one to decide to add space or not.
         std::cout << args[i] << (i + 1 < args.size() ? " " : "");
@@ -118,6 +118,8 @@ int main() {
           std::cout << cmd << ": not found" << std::endl;
         }
       }
+    } else if(command == "pwd") {
+      std::cout << fs::current_path().string() << std::endl;
     } else {
       auto result = is_in_dir(path_dirs, command);
       if (result.first) {
