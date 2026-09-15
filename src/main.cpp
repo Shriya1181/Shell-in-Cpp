@@ -21,10 +21,11 @@ int main() {
     } else if(command.substr(0, 5) == "echo ") {
       std::cout << command.substr(5) << std::endl;
     } else if(command.substr(0, 5) == "type ") {
-      if (builtins.count(command.substr(5))) {
-        std::cout << command.substr(5) << " is a shell builtin" <<std::endl;
+      std::string cmd = command.substr(5);
+      if (builtins.count(cmd)) {
+        std::cout << cmd << " is a shell builtin" <<std::endl;
       } else {
-        std::cerr << command.substr(5) << ": not found" << std::endl;
+        std::cerr << cmd << ": not found" << std::endl;
       }
     } else {
     std::cerr << command << ": command not found" << std::endl; 
