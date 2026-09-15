@@ -13,10 +13,14 @@ int main() {
     //getline reads the entire line including whitespace characters
     std::getline(std::cin, command);
     if(command == "exit") {
-      //break exits the while loop and terminates the program
+      //break exits the while loop and terminates the program or can use return 0
       break;
-    }
+    //substr returns a substring of the string starting from the index specified and of length specified
+    } else if(command.substr(0, 5) == "echo ") {
+      std::cout << command.substr(5) << std::endl;
+    } else {
     std:: cerr << command << ": command not found" << std::endl; 
+    }
   }
 
 }
