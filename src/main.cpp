@@ -1,12 +1,22 @@
 #include <iostream>
 #include <string>
 #include <set>
+#include <cstdlib>
+
+#ifdef _WIN32
+constexpr char PATH_LIST_SEPARATOR = ';';
+#else
+constexpr char PATH_LIST_SEPARATOR = ':';
+#endif
 
 int main() {
-  // Flush after every std::cout / std:cerr
+  // Flush after every std::cout / std:cerr (Turn of buffering)
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
   std::set<std::string> builtins = {"echo", "type", "exit"};
+  //getenv returns a pointer to the value in the environment, or NULL if there is no match. 
+  //For PATH this returns a pointer to the value of the PATH environment variable, a list of directories separated by PATH_LIST_SEPARATOR. 
+  char* path_env = std::getenv("PATH");
   while(true) {
     std::string command;
     // TODO: Uncomment the code below to pass the first stage
@@ -25,6 +35,9 @@ int main() {
       if (builtins.count(cmd)) {
         std::cout << cmd << " is a shell builtin" <<std::endl;
       } else {
+        if (path_env) {
+          
+        }
         std::cerr << cmd << ": not found" << std::endl;
       }
     } else {
