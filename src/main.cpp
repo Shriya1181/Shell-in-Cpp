@@ -8,6 +8,7 @@ int main() {
   std::string command;
   // TODO: Uncomment the code below to pass the first stage
   std::cout << "$ ";
-  std::cin >> command;
+  //cin reads input till the first whitespace character while getline reads the entire line including whitespace characters
+  std::getline(std::cin, command);
   std:: cerr << command << ": command not found"; 
 }
