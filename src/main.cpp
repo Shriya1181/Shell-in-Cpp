@@ -12,6 +12,10 @@ int main() {
     //cin reads input till the first whitespace character
     //getline reads the entire line including whitespace characters
     std::getline(std::cin, command);
+    if(command == "exit") {
+      //break exits the while loop and terminates the program
+      return 0;
+    }
     std:: cerr << command << ": command not found" << std::endl; 
   }
 
