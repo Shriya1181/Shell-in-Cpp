@@ -1,64 +1,21 @@
-## SHELL-CPP — Basic Shell Implemented in C++
+[![progress-banner](https://backend.codecrafters.io/progress/shell/d5e900a2-6dd1-468d-b389-a119b9912b16)](https://app.codecrafters.io/users/Shriya1181?r=2qF)
 
-A minimal REPL shell implementation. Entry point is `src/main.cpp` and the
-repository contains build tooling to compile and run it locally.
+This is a starting point for C++ solutions to the
+["Build Your Own Shell" Challenge](https://app.codecrafters.io/courses/shell/overview).
 
-## Features
+In this challenge, you'll build your own POSIX compliant shell that's capable of
+interpreting shell commands, running external programs and builtin commands like
+cd, pwd, echo and more. Along the way, you'll learn about shell command parsing,
+REPLs, builtin commands, and more.
 
-- Minimal starter `shell` program following REPL loop.
-- CMake build system (C++23).
-- Convenience scripts for local build/run.
+**Note**: If you're viewing this repo on GitHub, head over to
+[codecrafters.io](https://codecrafters.io) to try the challenge.
 
-## Requirements
+# Passing the first stage
 
-- CMake 3.13+ and a C++23-capable compiler (clang/gcc).
-- `vcpkg` is referenced by the build scripts; if you rely on it, ensure
-  `VCPKG_ROOT` is set in your environment. No vcpkg dependencies are required
-  by default.
-
-## How to Set Up and Run
-
-### Prerequisites
-
-- **CMake 3.13+** and a **C++23** capable compiler (clang or gcc).
-- **POSIX-compatible OS** (Linux or macOS) is recommended — the shell uses
-  `fork`/`execv` and `waitpid` which rely on POSIX APIs.
-- **vcpkg (optional)**: the provided scripts reference vcpkg. If you want to
-  use vcpkg, set the `VCPKG_ROOT` environment variable to your vcpkg
-  installation directory. No vcpkg packages are required by default.
-
-### Installation
-
-1. Clone the repository (HTTPS):
-
-```sh
-git clone https://github.com/Shriya1181/Shell-in-Cpp.git
-cd Shell-in-Cpp
-```
-
-2. Build and run using the helper script:
-
-```sh
-./your_program.sh
-```
-
-This script configures CMake to build into `./build` and then executes
-`./build/shell`.
-
-### Manual build (without the helper script)
-
-If you prefer to run the CMake steps manually or wish to omit vcpkg usage,
-follow these commands from the repository root:
-
-With vcpkg (if `VCPKG_ROOT` is set):
-
-```sh
-cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake
-cmake --build ./build
-./build/shell
-```
-
-Without vcpkg (omit the toolchain file):
+The entry point for your `shell` implementation is in `src/main.cpp`. Study and
+uncomment the relevant code, then run the command below to execute the tests on
+our servers:
 
 ```sh
 cmake -B build -S .
