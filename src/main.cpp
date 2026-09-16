@@ -122,6 +122,18 @@ int main() {
       std::cout << fs::current_path().string() << std::endl;
     } else if(command == "cd") {
       std::string path = args[1];
+      //if path exists and is a directory, change the current working directory to that path.
+      //this code works for both absolute and relative paths as fs::current_path() changes the current working directory to the specified path, regardless of whether it is absolute or relative.
+      if (path[0] == '~') {
+        // Replace the tilde with the user's home directory
+        //we query the HOME environment variable using std::getenv to get the user's home directory returning a c-style character array.
+        const char* home = std::getenv("HOME");
+        if (home) {
+          //if home directory is found, update path with the home directory and the rest of the path after the tilde by using substr to get the substring starting from index 1 (after the tilde).
+          path = std::string(home) + path.substr(1);
+          //convert c-style character array to C++ style string using std::string constructor.
+        }
+      }
       if(fs::exists(path) && fs::is_directory(path)) {
         fs::current_path(path);
       } else {
