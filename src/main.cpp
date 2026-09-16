@@ -69,7 +69,7 @@ int main() {
   // Flush after every std::cout / std:cerr (Turn of buffering)
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
-  std::set<std::string> builtins = {"echo", "type", "exit", "pwd"};
+  std::set<std::string> builtins = {"echo", "type", "exit", "pwd", "cd"};
   //getenv returns a pointer to the value in the environment, or NULL if there is no match. 
   //For PATH this returns a pointer to the value of the PATH environment variable, a list of directories separated by PATH_LIST_SEPARATOR. 
   char* path_env = std::getenv("PATH");
@@ -120,6 +120,13 @@ int main() {
       }
     } else if(command == "pwd") {
       std::cout << fs::current_path().string() << std::endl;
+    } else if(command == "cd") {
+      std::string path = args[1];
+      if(fs::exists(path) && fs::is_directory(path)) {
+        fs::current_path(path);
+      } else {
+        std::cout << command << ": " << path << ": No such file or directory" << std::endl;
+      }
     } else {
       auto result = is_in_dir(path_dirs, command);
       if (result.first) {
@@ -130,4 +137,4 @@ int main() {
     }
   }
   return 0;
-}
+}         
