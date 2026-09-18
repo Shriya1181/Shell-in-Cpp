@@ -40,6 +40,15 @@ std::vector<std::string> split_input(const std::string& input) {
       } else if (in_double_quotes) {
         if (c == '"') {
           in_double_quotes = false;
+        } else if (c == '\\') {
+          i++;
+          char next_char = input[i];
+          if (next_char == '\"' || next_char == '\\') {
+            current_word += next_char;
+          } else {
+            i--;
+            current_word += c;
+          }
         } else {
           current_word += c;
         }
