@@ -21,11 +21,37 @@ constexpr char PATH_LIST_SEPARATOR = ':';
 
 std::vector<std::string> split_input(const std::string& input) {
     std::stringstream ss(input);
-    std::string word;
+    std::string current_word;
     std::vector<std::string> arguments;
+    bool in_single_quotes = false;
     // The >> operator automatically splits by spaces and handles multiple spaces cleanly
-    while (ss >> word) {
-        arguments.push_back(word);
+    //while (ss >> word) { can no longer use this as it will not handle quotes properly. 
+    //    arguments.push_back(word);
+    //}
+    for (int i = 0; i < input.length(); i++) {
+      char c = input[i];
+      if (in_single_quotes) {
+        if (c == '\'') {
+          in_single_quotes = false;
+        } else {
+          current_word += c;
+        }
+      } else {
+        if (c == '\'') {
+          in_single_quotes = true;
+        } else if (c == ' ') {
+          if (!current_word.empty()) {
+            arguments.push_back(current_word);
+            current_word = "";
+          }
+        } else {
+          current_word += c; 
+        }
+      }
+    }
+    //push the very last word in the arguements which doesnt have a space after it
+    if (!current_word.empty()) {
+      arguments.push_back(current_word);
     }
     return arguments;
 }
@@ -91,6 +117,7 @@ int main() {
     //cin reads input till the first whitespace character
     //getline reads the entire line including whitespace characters
     std::getline(std::cin, input);
+    //
     std::vector<std::string> args = split_input(input);
     if (args.empty()) {
         continue;
