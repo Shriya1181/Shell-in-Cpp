@@ -44,9 +44,9 @@ std::vector<std::string> split_input(const std::string& input) {
           current_word += c;
         }
       } else {
-        if (c == '\'') {
+        if (c == '\'') { //first single quote
           in_single_quotes = true;
-        } else if (c == '"') {
+        } else if (c == '"') { //first double quote
           in_double_quotes = true;
         } else if (c == ' ') {
           if (!current_word.empty()) {
