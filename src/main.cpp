@@ -24,6 +24,7 @@ std::vector<std::string> split_input(const std::string& input) {
     std::string current_word;
     std::vector<std::string> arguments;
     bool in_single_quotes = false;
+    bool in_double_quotes = false;
     // The >> operator automatically splits by spaces and handles multiple spaces cleanly
     //while (ss >> word) { can no longer use this as it will not handle quotes properly. 
     //    arguments.push_back(word);
@@ -36,9 +37,17 @@ std::vector<std::string> split_input(const std::string& input) {
         } else {
           current_word += c;
         }
+      } else if (in_double_quotes) {
+        if (c == '"') {
+          in_double_quotes = false;
+        } else {
+          current_word += c;
+        }
       } else {
         if (c == '\'') {
           in_single_quotes = true;
+        } else if (c == '"') {
+          in_double_quotes = true;
         } else if (c == ' ') {
           if (!current_word.empty()) {
             arguments.push_back(current_word);
