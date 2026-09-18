@@ -53,6 +53,10 @@ std::vector<std::string> split_input(const std::string& input) {
             arguments.push_back(current_word);
             current_word = "";
           }
+        } else if (c == '\\') {
+          i++;
+          char next_char = input[i];
+          current_word += next_char;
         } else {
           current_word += c; 
         }
