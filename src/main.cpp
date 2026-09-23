@@ -10,6 +10,8 @@
 //use waitpid() to wait for the child process to finish and retrieve its exit status (before printing $ again)
 #include <sys/wait.h>
 #include <utility>
+#include <fcntl.h> // for using open() and file flags like O_RDONLY, O_WRONLY, O_CREAT, etc.
+#include <cstdio>  // for using perror() to print error messages related to file operations such as open(), read(), write(), etc.
 
 namespace fs = std::filesystem; // Alias for easier access to filesystem namespace
 
@@ -18,9 +20,8 @@ constexpr char PATH_LIST_SEPARATOR = ';';
 #else
 constexpr char PATH_LIST_SEPARATOR = ':';
 #endif
-
-std::vector<std::string> split_input(const std::string& input) {
-    std::stringstream ss(input);
+// Reference parameters return output filenames and parsing validity.
+std::vector<std::string> split_input(const std::string& input, std::vector<std::string>& output_files, bool& valid) {
     std::string current_word;
     std::vector<std::string> arguments;
     bool in_single_quotes = false;
@@ -29,7 +30,14 @@ std::vector<std::string> split_input(const std::string& input) {
     //while (ss >> word) { can no longer use this as it will not handle quotes properly. 
     //    arguments.push_back(word);
     //}
-    for (int i = 0; i < input.length(); i++) {
+    // Track token positions of unquoted stdout redirection operators.
+    //Initially, we set word_started to false and plain_word to true. We also clear the output_files vector and set valid to true.
+    std::set<size_t> redirect_positions;
+    bool word_started = false;
+    bool plain_word = true;
+    valid = true;
+    output_files.clear();
+    for (size_t i = 0; i < input.length(); i++) {
       char c = input[i];
       if (in_single_quotes) {
         if (c == '\'') {
@@ -41,12 +49,10 @@ std::vector<std::string> split_input(const std::string& input) {
         if (c == '"') {
           in_double_quotes = false;
         } else if (c == '\\') {
-          i++;
-          char next_char = input[i];
-          if (next_char == '\"' || next_char == '\\') {
-            current_word += next_char;
+          if (i + 1 < input.length() &&
+              (input[i + 1] == '"' || input[i + 1] == '\\')) {
+            current_word += input[++i];
           } else {
-            i--;
             current_word += c;
           }
         } else {
@@ -55,27 +61,70 @@ std::vector<std::string> split_input(const std::string& input) {
       } else {
         if (c == '\'') { //first single quote
           in_single_quotes = true;
+          word_started = true;
+          plain_word = false;
         } else if (c == '"') { //first double quote
           in_double_quotes = true;
-        } else if (c == ' ') {
-          if (!current_word.empty()) {
+          word_started = true;
+          plain_word = false;
+        } else if (c == ' ' || c == '\t') {
+          // Empty quoted arguments must also be saved.
+          if (word_started) {
             arguments.push_back(current_word);
-            current_word = "";
           }
+          current_word.clear();
+          word_started = false;
+          plain_word = true;
+        } else if (c == '>'){
+          if (plain_word && current_word == "1") {
+            current_word.clear();
+            word_started = false;
+          }
+          if (word_started) {
+            arguments.push_back(current_word);
+          }
+          current_word.clear();
+          word_started = false;
+          plain_word = true;
+          redirect_positions.insert(arguments.size());
+          arguments.push_back(">");
         } else if (c == '\\') {
           i++;
           char next_char = input[i];
           current_word += next_char;
+          word_started = true;
+          plain_word = false;
         } else {
           current_word += c; 
+          word_started = true;
         }
       }
     }
     //push the very last word in the arguements which doesnt have a space after it
-    if (!current_word.empty()) {
+    if (word_started) {
       arguments.push_back(current_word);
     }
-    return arguments;
+    current_word.clear();
+    word_started = false;
+    plain_word = true;
+    std::vector<std::string> command_args;
+
+    for (size_t i = 0; i < arguments.size(); ++i) {
+        if (redirect_positions.count(i)) {
+            if (i + 1 >= arguments.size() ||
+                redirect_positions.count(i + 1)) {
+                std::cerr << "syntax error: expected filename after >\n";
+                valid = false;
+                return {};
+            }
+
+            output_files.push_back(arguments[++i]);
+        } else {
+            command_args.push_back(arguments[i]);
+        }
+    }
+
+    return command_args;
 }
 
 std::pair<bool, fs::path> is_in_dir(const std::vector<std::string>& path_dirs, const std::string& cmd) {
@@ -138,64 +187,120 @@ int main() {
     std::cout << "$ ";
     //cin reads input till the first whitespace character
     //getline reads the entire line including whitespace characters
-    std::getline(std::cin, input);
-    //
-    std::vector<std::string> args = split_input(input);
-    if (args.empty()) {
-        continue;
-    }
-    std::string command = args[0];
-    if(command == "exit") {
-      //break exits the while loop and terminates the program or can use return 0
+    if (!std::getline(std::cin, input)) {
       break;
-    //substr returns a substring of the string starting from the index specified and of length specified
-    } else if(command == "echo") {
-      for (size_t i = 1; i < args.size(); ++i) {
-        //ternary operator checks if the current argument is the last one to decide to add space or not.
-        std::cout << args[i] << (i + 1 < args.size() ? " " : "");
+    }
+    //
+    std::vector<std::string> output_files;
+    bool valid;
+    std::vector<std::string> args = split_input(input, output_files, valid);
+    if (!valid) {
+      continue;
+    }
+    int saved_stdout = -1;
+    bool redirect_ok = true;
+    bool should_exit = false;
+    if (!output_files.empty()) {
+      std::cout.flush();
+      saved_stdout = dup(STDOUT_FILENO);
+
+      if (saved_stdout == -1) {
+        perror("dup");
+        continue;
       }
-      std::cout << std::endl;
-    } else if(command == "type" && args.size() == 2) {
-      std::string cmd = args[1];
-      if (builtins.count(cmd)) {
-        std::cout << cmd << " is a shell builtin" <<std::endl;
-      } else {
-        auto result = is_in_dir(path_dirs, cmd);
-        if (result.first) {
-          std::cout << cmd << " is " << result.second.string() << std::endl;
+
+      // Keep the saved descriptor out of executed programs.
+      if (fcntl(saved_stdout, F_SETFD, FD_CLOEXEC) == -1) {
+        perror("fcntl");
+        close(saved_stdout);
+        continue;
+      }
+
+      for (const std::string& file : output_files) {
+        int file_fd = open(file.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666);
+        if (file_fd == -1) {
+          perror(file.c_str());
+          redirect_ok = false;
+          break;
+        }
+        if (dup2(file_fd, STDOUT_FILENO) == -1) {
+          perror("dup2");
+          close(file_fd);
+          redirect_ok = false;
+          break;
+        }
+        close(file_fd);
+      }
+    }
+    if (redirect_ok && !args.empty()) {
+      std::string command = args[0];
+      if(command == "exit") {
+        //break exits the while loop and terminates the program or can use return 0
+        should_exit = true;
+      //substr returns a substring of the string starting from the index specified and of length specified
+      } else if(command == "echo") {
+        for (size_t i = 1; i < args.size(); ++i) {
+          //ternary operator checks if the current argument is the last one to decide to add space or not.
+          std::cout << args[i] << (i + 1 < args.size() ? " " : "");
+        }
+        std::cout << std::endl;
+      } else if(command == "type" && args.size() == 2) {
+        std::string cmd = args[1];
+        if (builtins.count(cmd)) {
+          std::cout << cmd << " is a shell builtin" <<std::endl;
         } else {
-          std::cout << cmd << ": not found" << std::endl;
+          auto result = is_in_dir(path_dirs, cmd);
+          if (result.first) {
+            std::cout << cmd << " is " << result.second.string() << std::endl;
+          } else {
+            std::cout << cmd << ": not found" << std::endl;
+          }
+        }
+      } else if(command == "pwd") {
+        std::cout << fs::current_path().string() << std::endl;
+      } else if(command == "cd") {
+        std::string path = args[1];
+        //if path exists and is a directory, change the current working directory to that path.
+        //this code works for both absolute and relative paths as fs::current_path() changes the current working directory to the specified path, regardless of whether it is absolute or relative.
+        if (!path.empty() && path[0] == '~') {
+          // Replace the tilde with the user's home directory
+          //we query the HOME environment variable using std::getenv to get the user's home directory returning a c-style character array.
+          const char* home = std::getenv("HOME");
+          if (home) {
+            //if home directory is found, update path with the home directory and the rest of the path after the tilde by using substr to get the substring starting from index 1 (after the tilde).
+            path = std::string(home) + path.substr(1);
+            //convert c-style character array to C++ style string using std::string constructor.
+          }
+        }
+        if(fs::exists(path) && fs::is_directory(path)) {
+          fs::current_path(path);
+        } else {
+          std::cerr << command << ": " << path << ": No such file or directory" << std::endl;
+        }
+      } else {
+        auto result = is_in_dir(path_dirs, command);
+        if (result.first) {
+          execute(args, result);
+        } else {
+          std::cerr << command << ": command not found" << std::endl;
         }
       }
-    } else if(command == "pwd") {
-      std::cout << fs::current_path().string() << std::endl;
-    } else if(command == "cd") {
-      std::string path = args[1];
-      //if path exists and is a directory, change the current working directory to that path.
-      //this code works for both absolute and relative paths as fs::current_path() changes the current working directory to the specified path, regardless of whether it is absolute or relative.
-      if (path[0] == '~') {
-        // Replace the tilde with the user's home directory
-        //we query the HOME environment variable using std::getenv to get the user's home directory returning a c-style character array.
-        const char* home = std::getenv("HOME");
-        if (home) {
-          //if home directory is found, update path with the home directory and the rest of the path after the tilde by using substr to get the substring starting from index 1 (after the tilde).
-          path = std::string(home) + path.substr(1);
-          //convert c-style character array to C++ style string using std::string constructor.
-        }
+    } // End command execution. Cleanup also runs for errors and empty commands.
+
+    if (saved_stdout != -1) {
+      std::cout.flush();
+      if (dup2(saved_stdout, STDOUT_FILENO) == -1) {
+        perror("restore stdout");
+        close(saved_stdout);
+        return 1;
       }
-      if(fs::exists(path) && fs::is_directory(path)) {
-        fs::current_path(path);
-      } else {
-        std::cout << command << ": " << path << ": No such file or directory" << std::endl;
-      }
-    } else {
-      auto result = is_in_dir(path_dirs, command);
-      if (result.first) {
-        execute(args, result);
-      } else {
-        std::cout << command << ": command not found" << std::endl;
-      }
+      close(saved_stdout);
+      std::cout.clear();
+    }
+
+    if (should_exit) {
+      break;
     }
   }
   return 0;
-}         
+}
